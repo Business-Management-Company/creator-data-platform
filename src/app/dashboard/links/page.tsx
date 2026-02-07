@@ -209,7 +209,7 @@ export default function LinksPage() {
               </button>
               <button
                 onClick={createLink}
-                disabled={creating || !newUrl || (customSlug.trim() && (!!slugError || slugAvailability === 'taken'))}
+                disabled={creating || !newUrl || Boolean(customSlug.trim() && (!!slugError || slugAvailability === 'taken'))}
                 className="flex-1 bg-brand-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
               >
                 {creating ? 'Creating...' : 'Create Link'}
