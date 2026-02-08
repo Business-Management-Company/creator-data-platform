@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Eye, LayoutDashboard, Link2, BarChart3, Users, FileText, Settings, LogOut } from 'lucide-react';
+import { Eye, LayoutDashboard, Link2, BarChart3, FileText, Share2, LogOut } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/dashboard/links', label: 'Smart Links', icon: Link2 },
+  { href: '/dashboard/social', label: 'Social Hub', icon: Share2 },
   { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/dashboard/bio', label: 'Bio Page', icon: FileText },
 ];

@@ -23,7 +23,8 @@
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18",
     "react-hot-toast": "^2.4.1",
-    "ua-parser-js": "^1.0.39"
+    "ua-parser-js": "^1.0.39",
+    "upload-post": "^2.0.3"
   },
   "devDependencies": {
     "@types/node": "^20",
