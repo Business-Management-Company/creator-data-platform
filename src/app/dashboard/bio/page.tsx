@@ -35,6 +35,11 @@ import {
   Tablet,
   Monitor,
   Plus,
+  Palette,
+  User,
+  Layout,
+  Share2,
+  Settings,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
@@ -195,6 +200,15 @@ export default function BioEditorPage() {
   const [loading, setLoading] = useState(true);
   const [previewSize, setPreviewSize] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
   const [showAddBlock, setShowAddBlock] = useState(false);
+  const [activeTab, setActiveTab] = useState<'template' | 'profile' | 'content' | 'social' | 'settings'>('template');
+
+  const TABS = [
+    { id: 'template' as const, label: 'Template', icon: Palette },
+    { id: 'profile' as const, label: 'Profile', icon: User },
+    { id: 'content' as const, label: 'Content', icon: Layout },
+    { id: 'social' as const, label: 'Social', icon: Share2 },
+    { id: 'settings' as const, label: 'Settings', icon: Settings },
+  ];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -396,86 +410,53 @@ export default function BioEditorPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        <div className="xl:col-span-2 space-y-6">
-          {/* Template Picker */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Template</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {Object.entries(BIO_TEMPLATES).map(([id, t]) => (
-                <button
-                  key={id}
-                  onClick={() => applyTemplate(id as keyof typeof BIO_TEMPLATES)}
-                  className={`p-3 rounded-xl border-2 text-left transition ${template === id ? 'border-brand-600 ring-2 ring-brand-200' : 'border-gray-200 hover:border-gray-300'}`}
-                >
-                  <div
-                    className="h-16 rounded-lg mb-2"
-                    style={{
-                      background: t.page_settings.background_type === 'gradient'
-                        ? `linear-gradient(180deg, ${t.page_settings.background_value}, ${t.page_settings.background_value_2})`
-                        : t.page_settings.background_value,
-                    }}
-                  />
-                  <p className="text-xs font-medium text-gray-700">{t.name}</p>
-                  <p className="text-xs text-gray-500">{t.description}</p>
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Tab bar */}
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="flex gap-1 -mb-px">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-brand-600 text-brand-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
-          {/* Profile & Avatar Upload */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Profile</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Avatar</label>
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const file = e.dataTransfer.files[0];
-                    if (file?.type.startsWith('image/')) {
-                      const input = fileInputRef.current;
-                      if (input) {
-                        const dt = new DataTransfer();
-                        dt.items.add(file);
-                        input.files = dt.files;
-                        input.dispatchEvent(new Event('change'));
-                      }
-                    }
-                  }}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-4 p-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-brand-500 hover:bg-brand-50/50 transition"
-                >
-                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                  <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0">
-                    {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <Upload className="w-8 h-8 text-gray-400" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-700">Drop image or click to upload</p>
-                    <p className="text-xs text-gray-500 mt-1">Supabase Storage • JPG, PNG</p>
-                    {avatarUploading && (
-                      <div className="mt-2 h-1.5 bg-gray-200 rounded overflow-hidden">
-                        <div className="h-full bg-brand-600 rounded transition-all" style={{ width: `${avatarProgress}%` }} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <input
-                  type="url"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="Or paste image URL"
-                  className="w-full mt-2 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
-                <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Your name" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bio Text</label>
-                <textarea value={bioText} onChange={(e) => setBioText(e.target.value)} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Creator, educator ✨" />
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="xl:col-span-2">
+          {activeTab === 'template' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Template</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+                {Object.entries(BIO_TEMPLATES).map(([id, t]) => (
+                  <button
+                    key={id}
+                    onClick={() => applyTemplate(id as keyof typeof BIO_TEMPLATES)}
+                    className={`p-3 rounded-xl border-2 text-left transition ${template === id ? 'border-brand-600 ring-2 ring-brand-200' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <div
+                      className="h-16 rounded-lg mb-2"
+                      style={{
+                        background: t.page_settings.background_type === 'gradient'
+                          ? `linear-gradient(180deg, ${t.page_settings.background_value}, ${t.page_settings.background_value_2})`
+                          : t.page_settings.background_value,
+                      }}
+                    />
+                    <p className="text-xs font-medium text-gray-700">{t.name}</p>
+                    <p className="text-xs text-gray-500">{t.description}</p>
+                  </button>
+                ))}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Font</label>
@@ -490,88 +471,230 @@ export default function BioEditorPage() {
                 </select>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Content Blocks */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Content Blocks</h3>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleBlockDragEnd}>
-              <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-2">
-                  {blocks.map((block) => (
-                    <SortableBlock
-                      key={block.id}
-                      block={block}
-                      links={links}
-                      onUpdate={updateBlock}
-                      onDelete={deleteBlock}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-            <div className="relative mt-4">
-              <button onClick={() => setShowAddBlock(!showAddBlock)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-brand-500 hover:text-brand-600 flex items-center justify-center gap-2">
-                <Plus className="w-4 h-4" /> Add block
-              </button>
-              {showAddBlock && (
-                <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-white border border-gray-200 rounded-xl shadow-lg z-10 grid grid-cols-2 gap-2">
-                  {BLOCK_TYPES.map((bt) => (
-                    <button
-                      key={bt.id}
-                      onClick={() => addBlock(bt.id as BioBlock['block_type'])}
-                      className="px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-100 flex items-center gap-2"
-                    >
-                      {bt.id === 'link' && <Link className="w-4 h-4" />}
-                      {bt.id === 'youtube' && <Youtube className="w-4 h-4" />}
-                      {bt.id === 'spotify' && <Music className="w-4 h-4" />}
-                      {bt.id === 'text' && <Type className="w-4 h-4" />}
-                      {bt.id === 'image' && <Image className="w-4 h-4" />}
-                      {bt.id === 'contact_form' && <Mail className="w-4 h-4" />}
-                      {bt.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Social Links */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Social Links</h3>
-            <div className="space-y-2">
-              {SOCIAL_PLATFORMS.slice(0, 6).map((platform) => (
-                <div key={platform.id} className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600 w-24">{platform.name}</span>
+          {activeTab === 'profile' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Profile</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Avatar</label>
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files[0];
+                      if (file?.type.startsWith('image/')) {
+                        const input = fileInputRef.current;
+                        if (input) {
+                          const dt = new DataTransfer();
+                          dt.items.add(file);
+                          input.files = dt.files;
+                          input.dispatchEvent(new Event('change'));
+                        }
+                      }
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-4 p-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-brand-500 hover:bg-brand-50/50 transition"
+                  >
+                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                    <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0">
+                      {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <Upload className="w-8 h-8 text-gray-400" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-700">Drop image or click to upload</p>
+                      <p className="text-xs text-gray-500 mt-1">Supabase Storage • JPG, PNG</p>
+                      {avatarUploading && (
+                        <div className="mt-2 h-1.5 bg-gray-200 rounded overflow-hidden">
+                          <div className="h-full bg-brand-600 rounded transition-all" style={{ width: `${avatarProgress}%` }} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <input
                     type="url"
-                    value={socialLinks[platform.id] || ''}
-                    onChange={(e) => setSocialLinks((s) => ({ ...s, [platform.id]: e.target.value }))}
-                    placeholder={platform.urlPrefix}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    placeholder="Or paste image URL"
+                    className="w-full mt-2 border border-gray-300 rounded-lg px-3 py-2 text-sm"
                   />
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Page Settings */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Page Settings</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">URL Slug</label>
-                <div className="flex items-center">
-                  <span className="text-sm text-gray-400 mr-1">{appUrl}/</span>
-                  <input type="text" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="yourname" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+                  <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Your name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio Text</label>
+                  <textarea value={bioText} onChange={(e) => setBioText(e.target.value)} rows={4} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Creator, educator ✨" />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Page Title</label>
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="My Links" />
+            </div>
+          )}
+
+          {activeTab === 'content' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Content Blocks</h3>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleBlockDragEnd}>
+                <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2">
+                    {blocks.map((block) => (
+                      <SortableBlock
+                        key={block.id}
+                        block={block}
+                        links={links}
+                        onUpdate={updateBlock}
+                        onDelete={deleteBlock}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+              <div className="relative mt-4">
+                <button onClick={() => setShowAddBlock(!showAddBlock)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-brand-500 hover:text-brand-600 flex items-center justify-center gap-2">
+                  <Plus className="w-4 h-4" /> Add block
+                </button>
+                {showAddBlock && (
+                  <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-white border border-gray-200 rounded-xl shadow-lg z-10 grid grid-cols-2 gap-2">
+                    {BLOCK_TYPES.map((bt) => (
+                      <button
+                        key={bt.id}
+                        onClick={() => addBlock(bt.id as BioBlock['block_type'])}
+                        className="px-3 py-2 text-left text-sm rounded-lg hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        {bt.id === 'link' && <Link className="w-4 h-4" />}
+                        {bt.id === 'youtube' && <Youtube className="w-4 h-4" />}
+                        {bt.id === 'spotify' && <Music className="w-4 h-4" />}
+                        {bt.id === 'text' && <Type className="w-4 h-4" />}
+                        {bt.id === 'image' && <Image className="w-4 h-4" />}
+                        {bt.id === 'contact_form' && <Mail className="w-4 h-4" />}
+                        {bt.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          )}
+
+          {activeTab === 'social' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Social Links</h3>
+              <div className="space-y-2">
+                {SOCIAL_PLATFORMS.map((platform) => (
+                  <div key={platform.id} className="flex items-center gap-3">
+                    <span className="text-sm text-gray-600 w-24">{platform.name}</span>
+                    <input
+                      type="url"
+                      value={socialLinks[platform.id] || ''}
+                      onChange={(e) => setSocialLinks((s) => ({ ...s, [platform.id]: e.target.value }))}
+                      placeholder={platform.urlPrefix}
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Page Settings</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">URL Slug</label>
+                  <div className="flex items-center">
+                    <span className="text-sm text-gray-400 mr-1">{appUrl}/</span>
+                    <input type="text" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="yourname" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Page Title</label>
+                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="My Links" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Background</label>
+                  <select
+                    value={settings?.background_type || 'solid'}
+                    onChange={(e) => setPageSettings((s) => ({ ...s, background_type: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="solid">Solid color</option>
+                    <option value="gradient">Gradient</option>
+                    <option value="image">Image URL</option>
+                  </select>
+                </div>
+                {(settings?.background_type || 'solid') === 'solid' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                    <input
+                      type="color"
+                      value={settings?.background_value || '#ffffff'}
+                      onChange={(e) => setPageSettings((s) => ({ ...s, background_value: e.target.value }))}
+                      className="w-full h-10 rounded cursor-pointer"
+                    />
+                  </div>
+                )}
+                {(settings?.background_type || 'solid') === 'gradient' && (
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Color 1</label>
+                      <input
+                        type="color"
+                        value={settings?.background_value || '#3b82f6'}
+                        onChange={(e) => setPageSettings((s) => ({ ...s, background_value: e.target.value }))}
+                        className="w-full h-10 rounded cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Color 2</label>
+                      <input
+                        type="color"
+                        value={settings?.background_value_2 || '#1d4ed8'}
+                        onChange={(e) => setPageSettings((s) => ({ ...s, background_value_2: e.target.value }))}
+                        className="w-full h-10 rounded cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
+                {(settings?.background_type || 'solid') === 'image' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                    <input
+                      type="url"
+                      value={(settings?.background_image as string) || ''}
+                      onChange={(e) => setPageSettings((s) => ({ ...s, background_image: e.target.value }))}
+                      placeholder="https://..."
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Button Shape</label>
+                  <select
+                    value={settings?.button_style || 'rounded'}
+                    onChange={(e) => setPageSettings((s) => ({ ...s, button_style: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="rounded">Rounded</option>
+                    <option value="pill">Pill</option>
+                    <option value="square">Square</option>
+                    <option value="outline">Outline</option>
+                    <option value="square_outline">Square outline</option>
+                    <option value="filled">Filled</option>
+                  </select>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={(settings?.email_capture as unknown) === true}
+                    onChange={(e) => setPageSettings((s) => ({ ...s, email_capture: e.target.checked }))}
+                    className="rounded border-gray-300 text-brand-600"
+                  />
+                  <span className="text-sm text-gray-700">Show email signup form on bio page</span>
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Live Preview */}
