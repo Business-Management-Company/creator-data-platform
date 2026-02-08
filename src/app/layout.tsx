@@ -13,6 +13,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter&family=Playfair+Display&family=Space+Grotesk&family=DM+Sans&family=Bebas+Neue&family=JetBrains+Mono&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className={inter.className}>
         {children}
         <Toaster position="bottom-right" />

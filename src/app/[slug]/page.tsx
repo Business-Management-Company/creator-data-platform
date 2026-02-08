@@ -18,24 +18,22 @@ export default async function BioPage({ params }: { params: { slug: string } }) 
     notFound();
   }
 
+  const { data: blocks } = await supabase
+    .from('bio_blocks')
+    .select('*')
+    .eq('user_id', profile.id)
+    .order('position', { ascending: true });
+
   const { data: links } = await supabase
     .from('links')
-    .select('id, title, short_code, destination_url, bio_icon, bio_order, link_order, thumbnail_url, icon, priority, schedule_start, schedule_end')
+    .select('id, title, short_code, destination_url, thumbnail_url, priority')
     .eq('user_id', profile.id)
     .eq('is_bio_link', true)
-    .eq('is_active', true)
-    .order('link_order', { ascending: true, nullsFirst: false })
-    .order('bio_order', { ascending: true });
-
-  const now = new Date();
-  const visibleLinks = (links || []).filter((l) => {
-    if (l.schedule_start && new Date(l.schedule_start) > now) return false;
-    if (l.schedule_end && new Date(l.schedule_end) < now) return false;
-    return true;
-  });
+    .eq('is_active', true);
 
   const theme = profile.bio_theme || { bg: '#ffffff', text: '#000000', accent: '#3361FF', style: 'minimal' };
   const pageSettings = (profile.page_settings as Record<string, unknown>) || {};
+  const linksMap = (links || []).reduce((acc, l) => { acc[l.id] = l; return acc; }, {} as Record<string, { id: string; title: string; short_code: string; destination_url: string; thumbnail_url?: string | null; priority?: boolean }>);
 
   return (
     <BioPageClient
@@ -46,18 +44,15 @@ export default async function BioPage({ params }: { params: { slug: string } }) 
         bioText: profile.bio_text || profile.bio_description || '',
         avatarUrl: profile.avatar_url || '',
         theme,
-        pageSettings,
+        pageSettings: (pageSettings || {}) as Record<string, string>,
         socialLinks: (profile.social_links as Record<string, string>) || {},
       }}
-      links={visibleLinks.map((l) => ({
-        id: l.id,
-        title: l.title,
-        shortCode: l.short_code,
-        destinationUrl: l.destination_url,
-        icon: l.bio_icon || l.icon,
-        thumbnailUrl: l.thumbnail_url,
-        priority: l.priority || false,
+      blocks={(blocks || []).map((b) => ({
+        id: b.id,
+        block_type: b.block_type,
+        block_data: (b.block_data as Record<string, unknown>) || {},
       }))}
+      linksMap={linksMap}
       slug={params.slug}
     />
   );

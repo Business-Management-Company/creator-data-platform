@@ -17,10 +17,10 @@ export async function GET() {
   return NextResponse.json(subscribers || []);
 }
 
-// POST /api/subscribers - Add subscriber (public bio page form; uses slug)
+// POST /api/subscribers - Add subscriber (bio page email capture or contact form)
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { slug, email } = body;
+  const { slug, email, name, message, source } = body;
 
   if (!slug || !email || typeof email !== 'string') {
     return NextResponse.json({ error: 'Slug and valid email required' }, { status: 400 });
@@ -42,6 +42,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
   }
 
+  const isContactForm = source === 'contact_form';
+
+  if (isContactForm) {
+    // Contact form: insert into contact_submissions
+    const { data: submission, error } = await supabase
+      .from('contact_submissions')
+      .insert({
+        profile_id: profile.id,
+        email: trimmedEmail,
+        name: typeof name === 'string' ? name.trim() : null,
+        message: typeof message === 'string' ? message.trim() : null,
+      })
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, submission });
+  }
+
+  // Email capture (bio_page): upsert, one per email
   const settings = (profile.page_settings as { email_capture?: boolean }) || {};
   if (!settings.email_capture) {
     return NextResponse.json({ error: 'Email capture is not enabled for this page' }, { status: 400 });
