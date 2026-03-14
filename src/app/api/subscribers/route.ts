@@ -20,7 +20,7 @@ export async function GET() {
 // POST /api/subscribers - Add subscriber (bio page email capture or contact form)
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { slug, email, name, message, source } = body;
+  const { slug, email, name, message, source, visitor_id, fingerprint_hash } = body;
 
   if (!slug || !email || typeof email !== 'string') {
     return NextResponse.json({ error: 'Slug and valid email required' }, { status: 400 });
@@ -67,12 +67,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Email capture is not enabled for this page' }, { status: 400 });
   }
 
+  const subscriberData: Record<string, any> = {
+    profile_id: profile.id,
+    email: trimmedEmail,
+    source: 'bio_page',
+  };
+  if (visitor_id) subscriberData.visitor_id = visitor_id;
+  if (fingerprint_hash) subscriberData.fingerprint_hash = fingerprint_hash;
+
   const { data: subscriber, error } = await supabase
     .from('subscribers')
-    .upsert(
-      { profile_id: profile.id, email: trimmedEmail, source: 'bio_page' },
-      { onConflict: 'profile_id,email', ignoreDuplicates: true }
-    )
+    .upsert(subscriberData, { onConflict: 'profile_id,email', ignoreDuplicates: true })
     .select()
     .single();
 
@@ -81,6 +86,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Already subscribed!' });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Stitch: if visitor_id provided, link email to the visitor record
+  if (visitor_id && trimmedEmail) {
+    const { data: visitor } = await supabase
+      .from('visitors')
+      .select('id, email, confidence_score')
+      .eq('user_id', profile.id)
+      .eq('visitor_id', visitor_id)
+      .single();
+
+    if (visitor && !visitor.email) {
+      await supabase.from('visitors').update({
+        email: trimmedEmail,
+        identified: true,
+        identity_source: 'email',
+        confidence_score: 50,
+      }).eq('id', visitor.id);
+    }
   }
 
   return NextResponse.json({ success: true, subscriber: subscriber || { email: trimmedEmail } });
