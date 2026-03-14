@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Code2, Copy, Check, RefreshCw, Globe, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { Code2, Copy, Check, RefreshCw, Globe, CheckCircle2, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface PixelDomain {
@@ -80,8 +80,6 @@ export default function PixelSettingsPage() {
     setTimeout(() => setCopied(null), 2000);
   }
 
-  const rb2bPixelId = process.env.NEXT_PUBLIC_RB2B_PIXEL_ID || '';
-
   const installSnippet = `<!-- CreatorPixel Tracking -->
 <script>
   (function(c,r,e,a,t,o,p){
@@ -91,18 +89,6 @@ export default function PixelSettingsPage() {
     p=r.getElementsByTagName(e)[0];p.parentNode.insertBefore(o,p);
   })(window,document,'script','','cpx');
   cpx('init', '${pixelId}');
-  cpx('track', 'pageview');
-</script>`;
-
-  const installSnippetWithRB2B = `<!-- CreatorPixel + RB2B Tracking -->
-<script>
-  (function(c,r,e,a,t,o,p){
-    c[t]=c[t]||function(){(c[t].q=c[t].q||[]).push(arguments)};
-    o=r.createElement(e);o.async=1;
-    o.src='${appUrl}/pixel.js';
-    p=r.getElementsByTagName(e)[0];p.parentNode.insertBefore(o,p);
-  })(window,document,'script','','cpx');
-  cpx('init', '${pixelId}', { rb2b: 'YOUR_RB2B_PIXEL_ID' });
   cpx('track', 'pageview');
 </script>`;
 
@@ -323,40 +309,6 @@ cpx('identify', 'visitor@email.com');`;
             </div>
           </div>
 
-          {/* RB2B Integration */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-lg font-bold text-purple-600">R</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">RB2B Setup (Layer 1)</h3>
-                <p className="text-sm text-gray-500">
-                  Add LinkedIn visitor identification — free tier identifies ~30% of US visitors.
-                </p>
-              </div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 space-y-3">
-              <p><strong>Step 1:</strong> Sign up at <a href="https://rb2b.com" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline inline-flex items-center gap-1">rb2b.com <ExternalLink className="w-3 h-3" /></a></p>
-              <p><strong>Step 2:</strong> In RB2B settings, set webhook URL to:</p>
-              <code className="block bg-white border rounded px-3 py-2 font-mono text-xs select-all">
-                {appUrl}/api/webhooks/rb2b
-              </code>
-              <p><strong>Step 3:</strong> Use this combined snippet instead (auto-injects RB2B pixel):</p>
-              <div className="relative">
-                <pre className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs overflow-x-auto font-mono">
-                  {installSnippetWithRB2B}
-                </pre>
-                <button
-                  onClick={() => copyToClipboard(installSnippetWithRB2B, 'rb2b-snippet')}
-                  className="absolute top-2 right-2 px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-gray-600"
-                >
-                  {copied === 'rb2b-snippet' ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-              <p className="text-xs text-gray-400">Replace YOUR_RB2B_PIXEL_ID with your RB2B pixel ID from your RB2B dashboard.</p>
-            </div>
-          </div>
         </div>
       )}
 
