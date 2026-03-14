@@ -121,9 +121,9 @@ timestamp:new Date().toISOString()
 for(var k in u)if(u.hasOwnProperty(k))p[k]=u[k];
 if(extra&&typeof extra==='object')for(var j in extra)if(extra.hasOwnProperty(j))p[j]=extra[j];
 
-// Beacon → fetch → image fallback
-try{var b=new Blob([JSON.stringify(p)],{type:'application/json'});if(navigator.sendBeacon&&navigator.sendBeacon(E,b))return}catch(e){}
-try{fetch(E,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p),keepalive:true,mode:'cors'}).catch(function(){})}catch(e){
+// fetch (keepalive) → image fallback
+// No sendBeacon — it always sends credentials, which breaks wildcard CORS
+try{fetch(E,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(p),keepalive:true,mode:'cors',credentials:'omit'}).catch(function(){})}catch(e){
 try{var img=new Image();img.src=E+'?d='+encodeURIComponent(JSON.stringify(p))}catch(e2){}}}
 
 function cpx(cmd,a1,a2){

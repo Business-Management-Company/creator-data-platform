@@ -39,8 +39,28 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: cors });
 }
 
-// GET — image pixel fallback
+// GET — image pixel fallback + debug test
 export async function GET(request: NextRequest) {
+  // ?test=PIXEL_ID — returns creator lookup result for debugging
+  const testId = request.nextUrl.searchParams.get('test');
+  if (testId) {
+    const supabase = createAdminSupabase();
+    const { data: creator, error } = await supabase
+      .from('profiles')
+      .select('id, pixel_id, email')
+      .eq('pixel_id', testId)
+      .single();
+    return NextResponse.json({
+      debug: true,
+      found: !!creator,
+      creator_id: creator?.id || null,
+      pixel_id: creator?.pixel_id || null,
+      email: creator?.email || null,
+      error: error?.message || null,
+      timestamp: new Date().toISOString(),
+    }, { status: 200, headers: cors });
+  }
+
   const d = request.nextUrl.searchParams.get('d');
   if (d) { try { processEvent(JSON.parse(d), request); } catch {} }
   return new NextResponse(TRANSPARENT_GIF, {
@@ -51,12 +71,30 @@ export async function GET(request: NextRequest) {
 
 // POST — main collection
 export async function POST(request: NextRequest) {
+  console.log('[collect] Request received:', {
+    method: request.method,
+    origin: request.headers.get('origin'),
+    contentType: request.headers.get('content-type'),
+    ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
+  });
+
   try {
-    const body = await request.json();
+    // Parse body — sendBeacon sends as text/plain to avoid CORS preflight,
+    // so fall back to parsing raw text if .json() fails
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      const text = await request.text();
+      body = JSON.parse(text);
+    }
+    console.log('[collect] Payload:', { pixel_id: body.pixel_id, visitor_id: body.visitor_id, page_url: body.page_url });
+
     // Fire processing without awaiting — respond immediately
     processEvent(body, request);
     return NextResponse.json({ status: 'ok' }, { status: 200, headers: cors });
-  } catch {
+  } catch (err) {
+    console.error('[collect] Failed to parse body:', err);
     return NextResponse.json({ status: 'ok' }, { status: 200, headers: cors });
   }
 }
@@ -69,11 +107,17 @@ async function processEvent(body: any, request: NextRequest) {
       screen_width, screen_height, timezone, language,
       device_type, browser, os,
       utm_source, utm_medium, utm_campaign, utm_content, utm_term,
-      email,
+      email, timestamp,
     } = body;
 
-    if (!pixel_id || !visitor_id) return;
-    if (isRateLimited(visitor_id)) return;
+    if (!pixel_id || !visitor_id) {
+      console.warn('[collect] Missing required fields:', { pixel_id: !!pixel_id, visitor_id: !!visitor_id });
+      return;
+    }
+    if (isRateLimited(visitor_id)) {
+      console.warn('[collect] Rate limited:', visitor_id);
+      return;
+    }
 
     const supabase = createAdminSupabase();
 
@@ -83,7 +127,11 @@ async function processEvent(body: any, request: NextRequest) {
       .select('id, pixel_id')
       .eq('pixel_id', pixel_id)
       .single();
-    if (!creator) return;
+    if (!creator) {
+      console.warn('[collect] Creator not found for pixel_id:', pixel_id);
+      return;
+    }
+    console.log('[collect] Matched creator:', creator.id, 'for pixel:', pixel_id);
 
     // 2. Extract server-side data
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -94,8 +142,8 @@ async function processEvent(body: any, request: NextRequest) {
     const domain = page_url ? extractDomain(page_url) : null;
     const referrerDomain = referrer ? extractDomain(referrer) : null;
 
-    // 3. Insert page view event
-    await supabase.from('page_view_events').insert({
+    // 3. Insert page view event (created_at uses DB DEFAULT now() — never pass it explicitly)
+    const { error: pvError } = await supabase.from('page_view_events').insert({
       creator_id: creator.id,
       visitor_id,
       pixel_id,
@@ -119,7 +167,10 @@ async function processEvent(body: any, request: NextRequest) {
       fingerprint_hash: fingerprint || null,
       session_id: session_id || null,
       ip_address: ip,
+      client_timestamp: timestamp || null,
     });
+
+    if (pvError) console.error('[collect] page_view_events insert failed:', pvError.message);
 
     // 4. Track pixel install domain
     if (domain) {
