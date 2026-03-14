@@ -93,9 +93,10 @@ function injectRB2B(rbId){
 if(!rbId||d.getElementById('cpx-rb2b'))return;
 try{
 var s=d.createElement('script');
-s.id='cpx-rb2b';s.async=true;
-s.src='https://b2b-signals.com/install/'+rbId+'.js';
-(d.head||d.getElementsByTagName('head')[0]).appendChild(s);
+s.id='cpx-rb2b';s.type='text/javascript';s.async=true;
+s.src='https://s3-us-west-2.amazonaws.com/b2bjsstore/b/'+rbId+'/reb2b.js.gz';
+var x=d.getElementsByTagName('script')[0];
+x.parentNode.insertBefore(s,x);
 }catch(e){}}
 
 function send(evType,extra){
@@ -136,7 +137,9 @@ if(rb2bId)injectRB2B(rb2bId);
 break;
 case'track':
 if(!pid){q.push([cmd,a1,a2]);return}
-send(a1||'pageview',a2);
+var ev=a1||'pageview';
+if(ev==='pageview'){if(w._cpx_tracked)return;w._cpx_tracked=true}
+send(ev,a2);
 break;
 case'identify':
 if(!pid){q.push([cmd,a1,a2]);return}
