@@ -155,5 +155,5 @@ default:break}}
 
 var eq=w.cpx&&w.cpx.q?w.cpx.q:[];
 w.cpx=cpx;
-for(var i=0;i<eq.length;i++)cpx.apply(null,eq[i]);
+for(var i=0;i<eq.length;i++){var a=Array.prototype.slice.call(eq[i]);cpx(a[0],a[1],a[2])}
 })(window,document);
