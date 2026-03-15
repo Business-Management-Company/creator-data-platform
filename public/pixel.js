@@ -101,6 +101,11 @@ x.parentNode.insertBefore(s,x);
 
 function send(evType,extra){
 if(!pid)return;
+// Pageview dedup — only one pageview per page load, no matter how many call paths
+if(evType==='pageview'){
+if(w._cpx_tracked){console.log('[CPX] pageview BLOCKED (already tracked)');return}
+w._cpx_tracked=true;
+console.log('[CPX] pageview ALLOWED (first fire)')}
 var u=gutm(),p={
 pixel_id:pid,
 visitor_id:gvid(),
@@ -127,19 +132,20 @@ if(extra&&typeof extra==='object')for(var j in extra)if(extra.hasOwnProperty(j))
 try{fetch(E,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(p),keepalive:true,mode:'cors',credentials:'omit'}).catch(function(){})}catch(e){
 try{var img=new Image();img.src=E+'?d='+encodeURIComponent(JSON.stringify(p))}catch(e2){}}}
 
-function cpx(cmd,a1,a2){
+function cpx(){
+var args=arguments,cmd=args[0],a1=args[1],a2=args[2];
 switch(cmd){
 case'init':
+console.log('[CPX init] arguments:',args[0],args[1],args[2]);
 pid=a1;
-if(a2&&a2.rb2b)rb2bId=a2.rb2b;
+var opts=a2||{};
+if(opts.rb2b){rb2bId=opts.rb2b;console.log('[CPX] RB2B id found:',rb2bId)}
 while(q.length){var c=q.shift();cpx(c[0],c[1],c[2])}
 if(rb2bId)injectRB2B(rb2bId);
 break;
 case'track':
 if(!pid){q.push([cmd,a1,a2]);return}
-var ev=a1||'pageview';
-if(ev==='pageview'){if(w._cpx_tracked)return;w._cpx_tracked=true}
-send(ev,a2);
+send(a1||'pageview',a2);
 break;
 case'identify':
 if(!pid){q.push([cmd,a1,a2]);return}
